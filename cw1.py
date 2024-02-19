@@ -18,6 +18,9 @@ SOBEL_Y  = np.array([[-1, -2, -1],
 GAUSSIAN = np.array([[ 1,  2,  1],
                      [ 2,  4,  2],
                      [ 1,  2,  1]])
+MEAN     = np.array([[ 1,  1,  1],
+                     [ 1,  1,  1],
+                     [ 1,  1,  1],])
 
 def convolution(img: cv.Mat, kernel: np.ndarray):
 
@@ -37,14 +40,27 @@ def convolution(img: cv.Mat, kernel: np.ndarray):
     # Normalise values to range [0, 255]
     normalised_img = normalise(result)
     
-    cv.namedWindow("Sobel X")
-    cv.imshow("Sobel X", normalised_img)
-    cv.resizeWindow("Sobel X", WINDOW_WIDTH, WINDOW_HEIGHT)
+    if ((kernel == SOBEL_X).all()):
+        cv.namedWindow("Sobel X")
+        cv.imshow("Sobel X", normalised_img)
+        cv.resizeWindow("Sobel X", WINDOW_WIDTH, WINDOW_HEIGHT)
+    elif ((kernel == SOBEL_Y).all()):
+        cv.namedWindow("Sobel Y")
+        cv.imshow("Sobel Y", normalised_img)
+        cv.resizeWindow("Sobel Y", WINDOW_WIDTH, WINDOW_HEIGHT)
+    elif ((kernel == GAUSSIAN).all()):
+        cv.namedWindow("Gaussian")
+        cv.imshow("Gaussian", normalised_img)
+        cv.resizeWindow("Gaussian", WINDOW_WIDTH, WINDOW_HEIGHT)
+    elif ((kernel == MEAN).all()):
+        cv.namedWindow("Mean")
+        cv.imshow("Mean", normalised_img)
+        cv.resizeWindow("Mean", WINDOW_WIDTH, WINDOW_HEIGHT)
 
     return result
 
-def thresholding():
-    return
+def thresholding(img: cv.Mat, threshold: int):
+    return np.where(img > threshold, 255, 0)
 
 def normalise(img: cv.Mat):
     result = ((img - np.min(img)) / (np.max(img) - np.min(img)) * 255)
@@ -63,6 +79,9 @@ def main():
     cv.resizeWindow("Source Image", WINDOW_WIDTH, WINDOW_HEIGHT)
 
     convolution(grey_img, SOBEL_X)
+    convolution(grey_img, SOBEL_Y)
+    convolution(grey_img, GAUSSIAN)
+    convolution(grey_img, MEAN)
 
     while True:
         # Press ESC to exit
