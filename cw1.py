@@ -75,14 +75,17 @@ def binary_threshold(img, threshold):
 def thresholding_mean(threshold):
     _, result = cv.threshold(normalise(edge_strength_mean), threshold, 255, cv.THRESH_BINARY)
     cv.imshow("Threshold - Mean", result)
+    cv.imwrite("threshold-mean.jpg", result)
 
 def thresholding_gaussian(threshold):
     _, result = cv.threshold(normalise(edge_strength_gaussian), threshold, 255, cv.THRESH_BINARY)
     cv.imshow("Threshold - Gaussian", result)
+    cv.imwrite("threshold-gaussian.jpg", result)
 
 def thresholding_grey(threshold):
     _, result = cv.threshold(normalise(edge_strength_grey), threshold, 255, cv.THRESH_BINARY)
     cv.imshow("Threshold - Grey", result)
+    cv.imwrite("threshold-grey.jpg", result)
 
 # Normalise values to range [0, 255]
 def normalise(img):
@@ -173,10 +176,18 @@ def main():
     cv.createTrackbar('Threshold', 'Threshold - Grey', 0, 255, thresholding_grey)
     cv.resizeWindow("Threshold - Grey", WINDOW_WIDTH, WINDOW_HEIGHT)
 
-    # threshold_test = binary_threshold(normalise(edge_strength_gaussian), 28)
-    # cv.namedWindow("t")
-    # cv.imshow("t", threshold_test)
-    # cv.resizeWindow("t", WINDOW_WIDTH, WINDOW_HEIGHT)
+    # Calculate the histogram
+    hist = cv.calcHist([normalise(edge_strength_gaussian)], [0], None, [256], [0, 256])
+    hist = hist.reshape(256)
+
+    # Plot histogram
+    plt.bar(np.linspace(0,255,256), hist)
+    plt.title('Histogram - Edge-Strength (11x11 Gaussian, σ=5)')
+    # plt.title('Histogram - Edge-Strength (9x9 Mean)')
+    # plt.title('Histogram - Edge-Strength (No Smoothing)')
+    plt.ylabel('Frequency')
+    plt.xlabel('Grey Level')
+    plt.show()
 
     while True:
         # Press ESC to exit
@@ -184,7 +195,7 @@ def main():
             break
 
 if __name__ == "__main__":
-    GAUSSIAN = gaussian(3, 1)
-    # GAUSSIAN = gaussian(7, 3)
-    MEAN = mean(3)
+    # GAUSSIAN = gaussian(3, 1)
+    GAUSSIAN = gaussian(7, 3)
+    MEAN = mean(11)
     main()
