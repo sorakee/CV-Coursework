@@ -15,14 +15,9 @@ SOBEL_X  = np.array([[-1,  0,  1],
 SOBEL_Y  = np.array([[-1, -2, -1],
                      [ 0,  0,  0],
                      [ 1,  2,  1]])
-MEAN     = np.array([[ 1,  1,  1],
-                     [ 1,  1,  1],
-                     [ 1,  1,  1],])
 
-def convolution(img: cv.Mat, kernel: np.ndarray):
-    if ((kernel == MEAN).all()):
-        kernel = (1 / kernel.shape[0]) * MEAN
-
+# Convolve image given kernel
+def convolution(img, kernel):
     result = np.zeros(img.shape)
 
     kernel_w = kernel.shape[0]
@@ -31,54 +26,78 @@ def convolution(img: cv.Mat, kernel: np.ndarray):
     pad = kernel_w // 2
     padded_img = padding(img, pad, pad)
 
-    for col in range(img.shape[1]):
-        for row in range(img.shape[0]):
-            pixel = padded_img[row:row + kernel_w, col:col + kernel_h]
-            result[row, col] = np.sum(pixel * kernel)
+    # Iterate over each pixel in the image
+    for i in range(img.shape[0]):
+        for j in range(img.shape[1]):
+            pixel = padded_img[i:i + kernel_w, j:j + kernel_h]
+            result[i, j] = np.sum(pixel * kernel)
 
     return result
 
+# Generate gaussian kernel given size and sigma value
 def gaussian(size, sigma=1):
     # Generate numpy array of indices 
     # and subtract each element by the center value
     x, y = np.indices((size, size)) - size // 2
 
     # G(x, y) = e^-((x^2+y^2)/(2*sigma^2))
-    kernel = np.exp(-(x ** 2 + y ** 2) / (2 * sigma ** 2))
+    result = np.exp(-(x ** 2 + y ** 2) / (2 * sigma ** 2))
 
-    return kernel
+    return result
 
-def padding(img: cv.Mat, pad_w: int, pad_h: int):
-    w, h = img.shape
+# Generate mean/box kernel given size
+def mean(size):
+    result = np.ones((size, size), dtype=np.uint8)
+    return result / (size ** 2)
+
+# Padding Function
+def padding(img, pad_w, pad_h):
+    r, c = img.shape
 
     # Initialize result (padded image) with zeros
-    padded_img = np.zeros((w + 2 * pad_w, h + 2 * pad_h), dtype=img.dtype)
-    padded_img[pad_w:pad_w + w, pad_h:pad_h + h] = img
+    result = np.zeros((r + 2 * pad_h, c + 2 * pad_w), dtype=img.dtype)
+    result[pad_h:pad_h + r, pad_w:pad_w + c] = img
 
-    return padded_img
+    return result
 
-# def thresholding(img: cv.Mat, threshold: int):
-#     return np.where(img > threshold, 255, 0)
+# Binary Threshold Function
+def binary_threshold(img, threshold):
+    # Initialize result with 0s
+    result = np.zeros(img.shape, dtype=img.dtype)
+    
+    # Iterate over each pixel in the image
+    for i in range(img.shape[0]):
+        for j in range(img.shape[1]):
+            result[i, j] = 255 if img[i, j] >= threshold else 0
+    
+    return result
 
-def thresholding_mean(threshold: int):
+def thresholding_mean(threshold):
     _, result = cv.threshold(normalise(edge_strength_mean), threshold, 255, cv.THRESH_BINARY)
     cv.imshow("Threshold - Mean", result)
 
-def thresholding_gaussian(threshold: int):
+def thresholding_gaussian(threshold):
     _, result = cv.threshold(normalise(edge_strength_gaussian), threshold, 255, cv.THRESH_BINARY)
     cv.imshow("Threshold - Gaussian", result)
 
-def normalise(img: cv.Mat):
-    # Normalise values to range [0, 255]
+def thresholding_grey(threshold):
+    _, result = cv.threshold(normalise(edge_strength_grey), threshold, 255, cv.THRESH_BINARY)
+    cv.imshow("Threshold - Grey", result)
+
+# Normalise values to range [0, 255]
+def normalise(img):
     result = ((img - np.min(img)) / (np.max(img) - np.min(img)) * 255)
     return result.astype(np.uint8)
 
-def gradient_magnitude(sobelX: np.ndarray, sobelY: np.ndarray):
+# Calculate gradient magnitude
+def gradient_magnitude(sobelX, sobelY):
     return np.sqrt(sobelX ** 2 + sobelY ** 2)
 
 def main():
     global edge_strength_mean
     global edge_strength_gaussian
+    global edge_strength_grey
+
     m_img = cv.imread(INPUT_IMAGE)
 
     if m_img is None:
@@ -100,35 +119,41 @@ def main():
     cv.imshow("Gaussian", normalise(gaussian_result))
     cv.resizeWindow("Gaussian", WINDOW_WIDTH, WINDOW_HEIGHT)
 
+    sobelX_grey = convolution(grey_img, SOBEL_X)
+    cv.imwrite('sobel-x-grey.jpg', normalise(sobelX_grey))
+
+    sobelY_grey = convolution(grey_img, SOBEL_Y)
+    cv.imwrite('sobel-y-grey.jpg', normalise(sobelY_grey))
+
     sobelX_mean = convolution(mean_result, SOBEL_X)
-    cv.namedWindow("Sobel X - Mean")
-    cv.imshow("Sobel X - Mean", normalise(sobelX_mean))
-    cv.resizeWindow("Sobel X - Mean", WINDOW_WIDTH, WINDOW_HEIGHT)
+    cv.imwrite('sobel-x-mean.jpg', normalise(sobelX_mean))
 
     sobelY_mean = convolution(mean_result, SOBEL_Y)
-    cv.namedWindow("Sobel Y - Mean")
-    cv.imshow("Sobel Y - Mean", normalise(sobelY_mean))
-    cv.resizeWindow("Sobel Y - Mean", WINDOW_WIDTH, WINDOW_HEIGHT)
+    cv.imwrite('sobel-y-mean.jpg', normalise(sobelY_mean))
 
     sobelX_gaussian = convolution(gaussian_result, SOBEL_X)
-    cv.namedWindow("Sobel X - Gaussian")
-    cv.imshow("Sobel X - Gaussian", normalise(sobelX_gaussian))
-    cv.resizeWindow("Sobel X - Gaussian", WINDOW_WIDTH, WINDOW_HEIGHT)
+    cv.imwrite('sobel-x-gaussian.jpg', normalise(sobelX_gaussian))
 
     sobelY_gaussian = convolution(gaussian_result, SOBEL_Y)
-    cv.namedWindow("Sobel Y - Gaussian")
-    cv.imshow("Sobel Y - Gaussian", normalise(sobelY_gaussian))
-    cv.resizeWindow("Sobel Y - Gaussian", WINDOW_WIDTH, WINDOW_HEIGHT)
+    cv.imwrite('sobel-y-gaussian.jpg', normalise(sobelY_gaussian))
+
+    edge_strength_grey = gradient_magnitude(sobelX_grey, sobelY_grey)
+    cv.namedWindow("Edge Strength - Grey")
+    cv.imshow("Edge Strength - Grey", normalise(edge_strength_grey))
+    cv.resizeWindow("Edge Strength - Grey", WINDOW_WIDTH, WINDOW_HEIGHT)
+    cv.imwrite('edge-strength-grey.jpg', normalise(edge_strength_grey))
 
     edge_strength_mean = gradient_magnitude(sobelX_mean, sobelY_mean)
     cv.namedWindow("Edge Strength - Mean")
     cv.imshow("Edge Strength - Mean", normalise(edge_strength_mean))
     cv.resizeWindow("Edge Strength - Mean", WINDOW_WIDTH, WINDOW_HEIGHT)
+    cv.imwrite('edge-strength-mean.jpg', normalise(edge_strength_mean))
 
     edge_strength_gaussian = gradient_magnitude(sobelX_gaussian, sobelY_gaussian)
     cv.namedWindow("Edge Strength - Gaussian")
     cv.imshow("Edge Strength - Gaussian", normalise(edge_strength_gaussian))
     cv.resizeWindow("Edge Strength - Gaussian", WINDOW_WIDTH, WINDOW_HEIGHT)
+    cv.imwrite('edge-strength-gaussian.jpg', normalise(edge_strength_gaussian))
 
     # Trackbar - Mean
     cv.namedWindow('Threshold - Mean')
@@ -142,6 +167,17 @@ def main():
     cv.createTrackbar('Threshold', 'Threshold - Gaussian', 0, 255, thresholding_gaussian)
     cv.resizeWindow("Threshold - Gaussian", WINDOW_WIDTH, WINDOW_HEIGHT)
 
+    # Trackbar - Grey
+    cv.namedWindow('Threshold - Grey')
+    cv.imshow('Threshold - Grey', normalise(edge_strength_grey))
+    cv.createTrackbar('Threshold', 'Threshold - Grey', 0, 255, thresholding_grey)
+    cv.resizeWindow("Threshold - Grey", WINDOW_WIDTH, WINDOW_HEIGHT)
+
+    # threshold_test = binary_threshold(normalise(edge_strength_gaussian), 28)
+    # cv.namedWindow("t")
+    # cv.imshow("t", threshold_test)
+    # cv.resizeWindow("t", WINDOW_WIDTH, WINDOW_HEIGHT)
+
     while True:
         # Press ESC to exit
         if cv.waitKey(1) == 27:
@@ -149,4 +185,6 @@ def main():
 
 if __name__ == "__main__":
     GAUSSIAN = gaussian(3, 1)
+    # GAUSSIAN = gaussian(7, 3)
+    MEAN = mean(3)
     main()
