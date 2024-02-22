@@ -15,15 +15,11 @@ SOBEL_X  = np.array([[-1,  0,  1],
 SOBEL_Y  = np.array([[-1, -2, -1],
                      [ 0,  0,  0],
                      [ 1,  2,  1]])
-GAUSSIAN = np.array([[ 1,  2,  1],
-                     [ 2,  4,  2],
-                     [ 1,  2,  1]])
 MEAN     = np.array([[ 1,  1,  1],
                      [ 1,  1,  1],
                      [ 1,  1,  1],])
 
 def convolution(img: cv.Mat, kernel: np.ndarray):
-
     result = np.zeros(img.shape)
 
     kernel_w = kernel.shape[0]
